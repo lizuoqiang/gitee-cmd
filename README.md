@@ -10,6 +10,10 @@ go install github.com/lizuoqiang/gitee-cmd@latest
 export GITEE_ACCESS_TOKEN=xxx
 `
 
+`
+gitee-cmd --help
+`
+
 ## 功能
 
 ### 创建pr
