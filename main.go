@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"strings"
@@ -27,6 +28,9 @@ func main() {
 }
 
 func run(action, branch, prType, owner, tag string) error {
+	if action == "" || branch == "" {
+		return errors.New("参数错误")
+	}
 	repos, err := searchRepos(owner, branch)
 	if err != nil {
 		fmt.Println("搜索仓库失败")

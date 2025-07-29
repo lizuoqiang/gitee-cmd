@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gitee-cmd/utils"
+	"github.com/lizuoqiang/gitee-cmd/utils"
 )
 
 //
