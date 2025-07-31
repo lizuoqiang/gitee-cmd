@@ -4,17 +4,18 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/lizuoqiang/gitee-cmd/utils"
 	"strings"
 )
 
 func main() {
-	action := flag.String("action", "", "操作:create_pr,merge_pr")
+	action := flag.String("action", "", "操作:create_pr,merge_pr,search_repo")
 
 	//merge_pr需要
 	tag := flag.String("tag", "", "[merge_pr]合并pr时是否创建tag")
 
 	//create_pr需要
-	branch := flag.String("branch", "", "[create_pr|merge_pr]分支名|pr的源分支名")
+	branch := flag.String("branch", "", "[create_pr|merge_pr|search_repo]分支名|pr的源分支名")
 	prType := flag.String("type", "release", "[create_pr]release:创建pr到release分支,master:到master分支")
 	owner := flag.String("owner", "huanjutang", "[create_pr|merge_pr]仓库所有者")
 	flag.Parse()
@@ -38,6 +39,10 @@ func run(action, branch, prType, owner, tag string) error {
 	}
 
 	switch action {
+	case "search_repo":
+		for index, repo := range repos {
+			fmt.Println(utils.Interface2String(index+1)+".", repo)
+		}
 	case "create_pr":
 		newBranch := "master"
 		if prType == "release" {
