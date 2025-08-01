@@ -3,9 +3,7 @@ package utils
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,8 +11,6 @@ import (
 	"os"
 	"runtime"
 	"strconv"
-
-	"github.com/mark3labs/mcp-go/mcp"
 )
 
 const (
@@ -130,6 +126,14 @@ func WithHeaders(headers map[string]string) Option {
 	}
 }
 
+func WithContext(ctx context.Context) Option {
+	return func(client *GiteeClient) {
+		if ctx != nil {
+			client.Ctx = ctx
+		}
+	}
+}
+
 func WithSkipAuth() Option {
 	return func(client *GiteeClient) {
 		client.SkipAuth = true
@@ -214,73 +218,4 @@ func (g *GiteeClient) IsFail() bool {
 
 func (g *GiteeClient) GetRespBody() ([]byte, error) {
 	return ioutil.ReadAll(g.Response.Body)
-}
-
-func (g *GiteeClient) HandleMCPResult(object any) (*mcp.CallToolResult, error) {
-	_, err := g.Do()
-	if err != nil {
-		switch {
-		case IsAuthError(err):
-			return mcp.NewToolResultError("Authentication failed: Please check your Gitee access token"), err
-		case IsNetworkError(err):
-			return mcp.NewToolResultError("Network error: Unable to connect to Gitee API"), err
-		case IsAPIError(err):
-			giteeErr := err.(*GiteeError)
-			return mcp.NewToolResultError(fmt.Sprintf("API error (%d): %s", giteeErr.Code, giteeErr.Details)), err
-		default:
-			return mcp.NewToolResultError(err.Error()), err
-		}
-	}
-
-	if object == nil {
-		return mcp.NewToolResultText("Operation completed successfully"), nil
-	}
-
-	body, err := g.GetRespBody()
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to read response body: %s", err.Error())),
-			NewInternalError(errors.New(err.Error()))
-	}
-
-	if err = json.Unmarshal(body, object); err != nil {
-		errorMessage := fmt.Sprintf("Failed to parse response: %v", err)
-		return mcp.NewToolResultError(errorMessage), NewInternalError(errors.New(errorMessage))
-	}
-
-	switch v := object.(type) {
-	case *[]FileContent:
-		for i := range *v {
-			content, err := base64.StdEncoding.DecodeString((*v)[i].Content)
-			if err != nil {
-				return mcp.NewToolResultError(fmt.Sprintf("Failed to decode base64 content: %s", err.Error())),
-					NewInternalError(err)
-			}
-			(*v)[i].Content = string(content)
-		}
-		object = v
-	case *FileContent:
-		content, err := base64.StdEncoding.DecodeString(v.Content)
-		if err != nil {
-			return mcp.NewToolResultError(fmt.Sprintf("Failed to decode base64 content: %s", err.Error())),
-				NewInternalError(err)
-		}
-		v.Content = string(content)
-		object = v
-	}
-
-	result, err := json.MarshalIndent(object, "", "  ")
-	if err != nil {
-		return mcp.NewToolResultError(fmt.Sprintf("Failed to format response: %s", err.Error())),
-			NewInternalError(err)
-	}
-
-	return mcp.NewToolResultText(string(result)), nil
-}
-
-func WithContext(ctx context.Context) Option {
-	return func(client *GiteeClient) {
-		if ctx != nil {
-			client.Ctx = ctx
-		}
-	}
 }
